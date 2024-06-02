@@ -20,5 +20,5 @@ app.use(express.static("public"))
 //routes import
 import userRouter from './routes/user.router.js'
 //routes declaration
-app.use("users",userRouter)
-export default app
+app.use("/api/v1/users",userRouter)
+export {app}

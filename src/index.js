@@ -1,7 +1,8 @@
+import dotenv from "dotenv";
+
 // require('dotenv').config({path: './env'})
 //as above way looks UGLY HENCE WE USE AnOTHER WAY(which i dont like)--->yeh nhi CHAL RAHA BECAUSE ITS COMMON JS TYPE
-import dotenv from "dotenv";
- import app from "./app.js";
+import {app} from './app.js';
 import connectDB from "./db/indexDB.js";
 dotenv.config({
     path:'.env'
@@ -9,7 +10,7 @@ dotenv.config({
 connectDB()
 .then(()=>{
     
-    app.listen(process.env.PORT || 3000,()=>{
+    app.listen(process.env.PORT || 8000,()=>{
         console.log(`server is listening at ${process.env.PORT}`)
     });
 })
