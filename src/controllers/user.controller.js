@@ -15,7 +15,7 @@ const registerUser=asynchandler( async (req,res)=>{
     }
 
     //checking if user already exsists or not
-    const exsistUser=User.findOne({
+    const exsistUser= await User.findOne({
         $or:[{username},{email}]
     })
     if(exsistUser){
@@ -25,18 +25,29 @@ const registerUser=asynchandler( async (req,res)=>{
     //check for images,avatar
      
     const avatarLocalPath=req.files?.avatar[0]?.path
-    const coverImageLocalPath=req.files?.coverImage[0]?.path
+    //console.log(req.files)
+    console.log(avatarLocalPath)
+    //const coverImageLocalPath=req.files?.coverImage[0]?.path
+let coverImageLocalPath;
+if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+    coverImageLocalPath=req.files.coverImage[0].path;
+}
+
 //check if avatar's local file path is recienved or not
     if(!avatarLocalPath){
         throw new APIError(400,"image not uploaded")
     }
+    
     //upload on cloudenary
-
+     
    const avatar=await uploadOnCloudenary(avatarLocalPath)
+   //console.log(avatar)
    const coverImage=await uploadOnCloudenary(coverImageLocalPath)
+
+   
    //again check whether avatar is uploaded or not on cloudenary
    if(!avatar){
-    throw new APIError(400,"image not uploaded")
+    throw new APIError(400,"image not uploaded123")
    }
    //now creating entry for db,only user is talking to database so use it for it
    const user=await User.create({
@@ -45,12 +56,10 @@ const registerUser=asynchandler( async (req,res)=>{
     coverImage:coverImage?.url || "",
     email,
     password,
-    username:username.tolowerCase()
-
-
+    username:username.toLowerCase()
    })
    //CHECKING WHETHER MY DB IS CONNECTED OR NOT, AND DISELECTING PASSWORD AND REFRESHTOKEN
-   const dbConnect=User.findById(user._id).select(
+   const dbConnect= await User.findById(user._id).select(
     "-password -refreshToken"
    )
    if(!dbConnect){
