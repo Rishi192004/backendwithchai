@@ -6,6 +6,7 @@ const router=Router()
 router.route("/register").post(
     //by this uload now i can upload 2 things on temp folder with there specific name,now what to upload is in logic part
     //of register of user
+    //here first it goes to multer file and gets saved in local Directory as its a middleware,befre post
     upload.fields([
         {
             name:"avatar",
