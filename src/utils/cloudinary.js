@@ -24,4 +24,4 @@ const uploadOnCloudenary= async (localFilePath) =>{
  }
  }
 
- export default uploadOnCloudenary;
+ export {uploadOnCloudenary};

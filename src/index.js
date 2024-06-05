@@ -1,6 +1,5 @@
 import dotenv from "dotenv";
-
-// require('dotenv').config({path: './env'})
+ // require('dotenv').config({path: './env'})
 //as above way looks UGLY HENCE WE USE AnOTHER WAY(which i dont like)--->yeh nhi CHAL RAHA BECAUSE ITS COMMON JS TYPE
 import {app} from './app.js';
 import connectDB from "./db/indexDB.js";
