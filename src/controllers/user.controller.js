@@ -1,10 +1,9 @@
 import { asynchandler } from "../utils/asynchandler.js";
 import { User } from "../models/user.model.js";
-import { APIError } from "../utils/APIError.js";
-import { upload } from "../middleware/multer.middleware.js";
+import { APIError } from "../utils/APIError.js"; 
 import { uploadOnCloudenary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { verifyJWT } from "../middleware/auth.middleware.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken=async(userId)=>{
     try {
@@ -42,7 +41,7 @@ const registerUser=asynchandler( async (req,res)=>{
      
     const avatarLocalPath=req.files?.avatar[0]?.path
     //console.log(req.files)
-    console.log(avatarLocalPath)
+    //console.log(avatarLocalPath)
     //const coverImageLocalPath=req.files?.coverImage[0]?.path
 let coverImageLocalPath;
 if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
@@ -86,8 +85,6 @@ if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.leng
     return res.status(201).json(
        new ApiResponse(200,dbConnect,"user is registered")
     )
-   
-
 })
 
 const loginUser=asynchandler(async (req,res)=>{
@@ -99,7 +96,7 @@ const loginUser=asynchandler(async (req,res)=>{
     //send cookie
 
     const {email,username,password}=req.body
-
+    //console.log(email,username)
     if(!username && !email){
         throw new APIError(400,"username or email is required")
     }
@@ -109,10 +106,10 @@ const loginUser=asynchandler(async (req,res)=>{
     })
     //HERE User IS NOT USED INSTEAD user IS USED BECAUSE ISPASSWORD CORRECT IS DEFINED BY ME SO IT WILL BE APPLIED TO THE RESPONSE WHICH DB HAS SENT TO ME AND I AM STORING IT IN user
     if(!user){
-        throw new APIError(404,"user does not exist")
+        throw new APIError(404,"user does not exist123")
     }
 
-     const isPasswordValid=await user.isPasswordCorrect(password)
+   const isPasswordValid=await user.isPasswordCorrect(password)
     if(!isPasswordValid){
         throw new APIError(404,"user does not exist")
     }
@@ -150,12 +147,15 @@ const logoutUser=asynchandler(async (req,res)=>{
     //as for user to do any work accesstoken is always required hence fisrt confirming that is user there or not with access token
     //then if there then i can add a user in req and hence i can have access to user._id
     //injecting it with middleware
+    
+    
     //cookie is middleware and i can also access it ,in same way i will make a custom middleware through which i can access my id
+    
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken:undefined
+            $unset:{
+                refreshToken:1
             }
         },
         {
@@ -176,4 +176,37 @@ const logoutUser=asynchandler(async (req,res)=>{
 
 })
 
-export {registerUser,loginUser,logoutUser}
+const refreshAccessToken=asynchandler(async(req,res)=>{
+    const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken
+    if(!incomingRefreshToken){
+        throw new APIError(401,"unauthorized request")
+    }
+
+    try {
+        const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+       const user=await User.findById(decodedToken._id)
+       if(!user){
+        throw new APIError(401,"invalid refresh token")
+       }
+       if(incomingRefreshToken!==user?.refreshToken){
+        throw new APIError(401,"refresh token not matched so its expired or used")
+       }
+       const option={
+        httpOnly:true,
+        secure:true
+       }
+       const {accessToken,newRefreshToken}=await generateAccessAndRefreshToken(user._id)
+       return res
+       .status(200)
+       .cookie("accessToken",accessToken,option)
+       .cookie("refreshToken",newRefreshToken,option)
+       .json(
+        new ApiResponse(200,{accessToken,newRefreshToken},"refreshToken generated successfully")
+       )
+    
+    } catch (error) {
+        throw new APIError(400,error?.message ||"invalid refreshtoken")
+    }
+})
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken}
