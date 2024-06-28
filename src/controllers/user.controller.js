@@ -3,7 +3,7 @@ import { User } from "../models/user.model.js";
 import { APIError } from "../utils/APIError.js"; 
 import { uploadOnCloudenary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken"; 
 
 const generateAccessAndRefreshToken=async(userId)=>{
     try {
@@ -209,4 +209,18 @@ const refreshAccessToken=asynchandler(async(req,res)=>{
     }
 })
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken}
+const changeCurrentPassword= asynchandler(async(req,res)=>{
+    const {oldPassword , newPassword}=req.body
+    //is oldPassword and password stored in db is same or not
+    const user=await User.findById(req.user?._id)
+    const isPasswordValid=await user.isPasswordCorrect(oldPassword);
+    if(!isPasswordValid){
+        throw  APIError(401,"password does not match")
+    }
+    user.password=newPassword
+    await user.save({validateBeforeSave:false})
+
+    return ApiResponse(200,{},"password changed successfully")
+})
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword}

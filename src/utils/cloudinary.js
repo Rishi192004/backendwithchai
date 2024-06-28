@@ -18,7 +18,7 @@ const uploadOnCloudenary= async (localFilePath) =>{
     })
     //here file is successfully uploaded now unlink the file
        
-     //fs.unlinkSync(localFilePath)
+     fs.unlinkSync(localFilePath)
     return response;
  } catch (error) {
     //if error then from unlink the file url from locall server also

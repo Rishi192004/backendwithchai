@@ -13,13 +13,13 @@ export const verifyJWT=asynchandler(async(req,res,next)=>{
             throw new APIError(401,"unauthorized request")
 
         }
-        console.log(token)
+        //console.log(token)
 
         //verify that is accesstoken with respect of ACCESS_TOKEN_SECRET
 
         const decodedToken=jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
 
-        console.log(decodedToken)
+        //console.log(decodedToken)
 
         const user=await User.findById(decodedToken?._id).select("-password -refreshToken");
 
@@ -28,7 +28,7 @@ export const verifyJWT=asynchandler(async(req,res,next)=>{
             //so here i have to send end point for generating access token
         }
 
-        console.log(user)
+        //console.log(user)
 
         req.user=user;
 
