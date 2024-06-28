@@ -215,7 +215,7 @@ const changeCurrentPassword= asynchandler(async(req,res)=>{
     const user=await User.findById(req.user?._id)
     const isPasswordValid=await user.isPasswordCorrect(oldPassword);
     if(!isPasswordValid){
-        throw  APIError(401,"password does not match")
+        throw new APIError(401,"password does not match")
     }
     user.password=newPassword
     await user.save({validateBeforeSave:false})
@@ -257,4 +257,56 @@ const updateAccountDetails=asynchandler(async(req,res)=>{
 
 })
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getUser,updateAccountDetails}
+const updateAvatar=asynchandler(async(req,res)=>{
+    const updatedAvatarPath=req.file?.path;
+    if(!updatedAvatarPath){
+        throw new APIError(400,"avatar file is missing")
+    }
+    const uploadedAvatarPath= await uploadOnCloudenary(updatedAvatarPath)
+    if(!uploadedAvatarPath.path){
+        throw new APIError(500,"avatar's URI not recieved after uploading")
+    }
+   const user=await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+        $set:{
+            avatar:uploadedAvatarPath.url
+        }
+    },
+    {new:true}
+).select("-password")
+    
+   return res
+   .status(200)
+   .json(new ApiResponse(200,user,"avatar updated successfully"))
+   
+})
+
+const updateCoverImage=asynchandler(async(req,res)=>{
+    const updatedCoverImagePath=req.file?.path;
+    if(!updatedCoverImagePath){
+        throw new APIError(400,"avatar file is missing")
+    }
+    const uploadedCoverImagePath= await uploadOnCloudenary(updatedCoverImagePath)
+    if(!uploadedCoverImagePath.path){
+        throw new APIError(500,"cover image URI not recieved after uploading")
+    }
+   const user=await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+        $set:{
+            coverImage:uploadedCoverImagePath.url
+        }
+    },
+    {new:true}
+).select("-password")
+    
+   return res
+   .status(200)
+   .json(new ApiResponse(200,user,"avatar updated successfully"))
+   
+})
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getUser,updateAccountDetails,
+    updateAvatar,updateCoverImage
+}
