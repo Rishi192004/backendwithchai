@@ -223,4 +223,38 @@ const changeCurrentPassword= asynchandler(async(req,res)=>{
     return ApiResponse(200,{},"password changed successfully")
 })
 
-export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword}
+const getUser=asynchandler(async(req,res)=>{
+    return res
+    .status(200)
+    .json(200,req.user,"current user fetched")
+})
+
+const updateAccountDetails=asynchandler(async(req,res)=>{
+    const {fullname,email}=req.body
+    //here i dont want the user to be able to change his/her username
+    //here we should not give option for files change as it can lead to difficulties so for file update keep a diff route
+    if(!fullname || !email){
+        throw APIError(400,"both field required for updation")
+    }
+
+    const user=await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set:{
+                fullname:fullname,
+                email:email
+            }
+        },
+        {
+            new:true
+        }
+    ).select("-password -refreshToken")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"account details successfully updated"))
+
+
+})
+
+export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getUser,updateAccountDetails}
