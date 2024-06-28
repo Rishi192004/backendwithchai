@@ -304,9 +304,20 @@ const updateCoverImage=asynchandler(async(req,res)=>{
     if(!updatedCoverImagePath){
         throw new APIError(400,"avatar file is missing")
     }
+    const checkUser = await User.findById(req.user?._id);
+    if (!user) {
+        throw new APIError(404, "User not found");
+    }
+
+    const oldCoverImagePublicId = user.coverImage ? extractPublicId(user.coverImage) : null;
+
     const uploadedCoverImagePath= await uploadOnCloudenary(updatedCoverImagePath)
     if(!uploadedCoverImagePath.path){
         throw new APIError(500,"cover image URI not recieved after uploading")
+    }
+
+    if (oldCoverImagePublicId) {
+        await deleteFromCloudinary(oldCoverImagePublicId);
     }
    const user=await User.findByIdAndUpdate(
     req.user?._id,
