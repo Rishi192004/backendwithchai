@@ -1,9 +1,11 @@
 import { asynchandler } from "../utils/asynchandler.js";
 import { User } from "../models/user.model.js";
 import { APIError } from "../utils/APIError.js"; 
-import { uploadOnCloudenary } from "../utils/cloudinary.js";
+import { uploadOnCloudenary , extractPublicId , deleteFromCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"; 
+
+
 
 const generateAccessAndRefreshToken=async(userId)=>{
     try {
@@ -264,12 +266,25 @@ const updateAvatar=asynchandler(async(req,res)=>{
     if(!updatedAvatarPath){
         throw new APIError(400,"avatar file is missing")
     }
+
+    const checkUser = await User.findById(req.user?._id);
+    if (!user) {
+        throw new APIError(404, "User not found");
+    }
+
+    const oldAvatarPublicId = user.avatar ? extractPublicId(user.avatar) : null;
+
     const uploadedAvatarPath= await uploadOnCloudenary(updatedAvatarPath)
     if(!uploadedAvatarPath.path){
         throw new APIError(500,"avatar's URI not recieved after uploading")
     }
+
+    if (oldAvatarPublicId) {
+        await deleteFromCloudinary(oldAvatarPublicId);
+    }
+
    const user=await User.findByIdAndUpdate(
-    req.user?._id,
+    req.user._id,
     {
         $set:{
             avatar:uploadedAvatarPath.url
