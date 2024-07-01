@@ -4,7 +4,7 @@ import { APIError } from "../utils/APIError.js";
 import { uploadOnCloudenary , extractPublicId , deleteFromCloudinary} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"; 
-
+import { subscription } from "../models/subscription.model.js";
 
 
 const generateAccessAndRefreshToken=async(userId)=>{
@@ -335,6 +335,41 @@ const updateCoverImage=asynchandler(async(req,res)=>{
    
 })
 
+const getUserChannelProfile=asynchandler(async(req,res)=>{
+     //i will have link for profile of channel
+    const {username}=req.params
+    if(!username?.trim()){
+        throw new APIError(400,"Username not there")
+    }
+    const user=await User.findOne({username:username.toLowerCase()})
+    if(!user){
+        throw new APIError(400,"channel not found")
+    }
+    //user._id yash mittal ki id hai
+    const subscribersCount=await subscription.countDocuments({channel: user._id})
+
+    const subscribedToCount=await subscription.countDocuments({subscriber:user._id})
+
+    const isSubscribed = await subscription.exists({
+            //req.user because bhai yeh woh bnda hai jo mera app chala raha hoga
+        subscriber: req.user?._id,
+            //aur user mai maine uss channel ka profile nikal ke laya hun
+        channel: user._id
+
+
+        /*he exists method checks if there is a document in the subscriptions collection where:
+    The subscriber field matches the _id of the currently authenticated user (req.user?._id).
+    The channel field matches the _id of the channel owner (user._id).*/
+    });
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,subscribersCount,subscribedToCount,isSubscribed,username,user.fullname,user.avatar,user,coverImage),
+"user channel profile sent")
+})
+
+
+
 export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getUser,updateAccountDetails,
-    updateAvatar,updateCoverImage
+    updateAvatar,updateCoverImage,getUserChannelProfile
 }
