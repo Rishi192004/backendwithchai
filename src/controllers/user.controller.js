@@ -9,14 +9,16 @@ import { subscription } from "../models/subscription.model.js";
 
 const generateAccessAndRefreshToken=async(userId)=>{
     try {
-        const user=await User.findOne(userId)
+        const user=await User.findById(userId)
         const refreshToken=user.generateRefreshToken()
         const accessToken=user.generateAccessToken()
 
+        console.log("Generated Access Token:", accessToken); 
+        console.log("Generated Refresh Token:", refreshToken);  
+
         user.refreshToken=refreshToken
-        //validateBeforeSave is because when we save in database then it also requires all required fields to be passed but its not in login
-        await user.save({validateBeforeSave: false})
-        return {accessToken,refreshToken}
+        await user.save({ validateBeforeSave: false})
+        return { accessToken: await accessToken, refreshToken: await refreshToken };
     } catch (error) {
         throw new APIError(500,"something went wrong while generating tokens")
     }
@@ -90,15 +92,7 @@ if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.leng
 })
 
 const loginUser=asynchandler(async (req,res)=>{
-    //req.body->data
-    //check username or email excists or not
-    //find user
-    //if its there then is password correct
-    //now generate access token and refresh token for autolog in
-    //send cookie
-
     const {email,username,password}=req.body
-    //console.log(email,username)
     if(!username && !email){
         throw new APIError(400,"username or email is required")
     }
@@ -106,24 +100,23 @@ const loginUser=asynchandler(async (req,res)=>{
     const user= await User.findOne({
         $or:[{username} , {email}]
     })
-    //HERE User IS NOT USED INSTEAD user IS USED BECAUSE ISPASSWORD CORRECT IS DEFINED BY ME SO IT WILL BE APPLIED TO THE RESPONSE WHICH DB HAS SENT TO ME AND I AM STORING IT IN user
-    if(!user){
+     if(!user){
         throw new APIError(404,"user does not exist123")
     }
+    //console.log(user);
 
    const isPasswordValid=await user.isPasswordCorrect(password)
+    
     if(!isPasswordValid){
         throw new APIError(404,"user does not exist")
     }
 
-    //Now generate access and refresh token, and it is very common to generate both so making a function for this purpose
-
-   const {accessToken,refreshToken}=await generateAccessAndRefreshToken(user._id);
-   // here the problem is that the user property does not have refreshtoken value because token value is called latter
-   //now sending in cookies
-
-   const logedInUser=await User.findById(user._id).select("-password -refreshToken");
-//these option are sent with cookies
+ 
+   const {accessToken, refreshToken}=await generateAccessAndRefreshToken(user._id);
+    
+  
+   const logedInUser=await User.findById(user._id).select("-password")
+ 
    const option={
     httpOnly:true,
     secure:true
@@ -134,9 +127,10 @@ const loginUser=asynchandler(async (req,res)=>{
    .cookie("accessToken",accessToken,option)
    .cookie("refreshToken",refreshToken,option)
    .json(
-    new ApiResponse(200,
+    new ApiResponse(
+        200,
         {
-            user:accessToken,refreshToken,logedInUser
+            logedInUser,accessToken,refreshToken
         },
         "user logged in succesfully"
     )
@@ -179,6 +173,7 @@ const logoutUser=asynchandler(async (req,res)=>{
 })
 
 const refreshAccessToken=asynchandler(async(req,res)=>{
+    
     const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken
     if(!incomingRefreshToken){
         throw new APIError(401,"unauthorized request")
@@ -186,6 +181,7 @@ const refreshAccessToken=asynchandler(async(req,res)=>{
 
     try {
         const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+        console.log("this is decoded token:",decodedToken);
        const user=await User.findById(decodedToken._id)
        if(!user){
         throw new APIError(401,"invalid refresh token")
@@ -195,15 +191,15 @@ const refreshAccessToken=asynchandler(async(req,res)=>{
        }
        const option={
         httpOnly:true,
-        secure:true
+        //secure:true
        }
-       const {accessToken,newRefreshToken}=await generateAccessAndRefreshToken(user._id)
+       const {accessToken,RefreshToken}=await generateAccessAndRefreshToken(user._id)
        return res
        .status(200)
        .cookie("accessToken",accessToken,option)
-       .cookie("refreshToken",newRefreshToken,option)
+       .cookie("refreshToken",RefreshToken,option)
        .json(
-        new ApiResponse(200,{accessToken,newRefreshToken},"refreshToken generated successfully")
+        new ApiResponse(200,{accessToken,RefreshToken},"refreshToken generated successfully")
        )
     
     } catch (error) {

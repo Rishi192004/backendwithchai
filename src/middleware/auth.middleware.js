@@ -4,23 +4,22 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
 
 
-export const verifyJWT=asynchandler(async(req,res,next)=>{
+export const verifyJWT=asynchandler(async(req, _,next)=>{
     try {
-        const token=req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer", "")
+        console.log(req.cookies)
+        const token=req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","").trim()
+        console.log("Extracted token:", token); 
         
         if(!token){
 
             throw new APIError(401,"unauthorized request")
 
         }
-        //console.log(token)
-
-        //verify that is accesstoken with respect of ACCESS_TOKEN_SECRET
-
+ 
+ 
         const decodedToken=jwt.verify(token,process.env.ACCESS_TOKEN_SECRET)
 
-        //console.log(decodedToken)
-
+ 
         const user=await User.findById(decodedToken?._id).select("-password -refreshToken");
 
         if(!user){
@@ -28,13 +27,13 @@ export const verifyJWT=asynchandler(async(req,res,next)=>{
             //so here i have to send end point for generating access token
         }
 
-        //console.log(user)
-
+ 
         req.user=user;
 
         next()
     
     } catch (error) {
+        console.log("here is the error",error)
         throw new APIError(401, "invalid user credential")
     }
 })
