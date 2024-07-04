@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import bodyParser from 'body-parser';
 const app=express()
 
 app.use(cors({
@@ -10,6 +11,7 @@ app.use(cors({
 )) 
 //this thing below is for taking data from json file
 app.use(express.json({limit:"10kb"}))
+app.use(bodyParser.json());
 //thing below is for taking data from url
 app.use(express.urlencoded({limit:"10kb",extended:true}))
 //thing below is for cookie parser

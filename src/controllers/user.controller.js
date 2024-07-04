@@ -10,15 +10,18 @@ import { Video } from "../models/video.model.js"
 
 const generateAccessAndRefreshToken=async(userId)=>{
     try {
-        const user=await User.findById(userId)
-        const refreshToken=user.generateRefreshToken()
-        const accessToken=user.generateAccessToken()
+        const user=await User.findById(userId) 
+         
+        const refreshToken=await user.generateRefreshToken();
+        const accessToken=await user.generateAccessToken(); 
+        
+        user.refreshToken= refreshToken;
+         
+        await user.save({ validateBeforeSave: false }).catch(error => {
+         
+        throw new APIError(500, "Failed to save user with refreshToken");
+    });
 
-        console.log("Generated Access Token:", accessToken); 
-        console.log("Generated Refresh Token:", refreshToken);  
-
-        user.refreshToken=refreshToken
-        await user.save({ validateBeforeSave: false})
         return { accessToken: await accessToken, refreshToken: await refreshToken };
     } catch (error) {
         throw new APIError(500,"something went wrong while generating tokens")
@@ -77,12 +80,12 @@ if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.leng
     email,
     password,
     username:username.toLowerCase()
-   })
+   }) 
    //CHECKING WHETHER MY DB IS CONNECTED OR NOT, AND DISELECTING PASSWORD AND REFRESHTOKEN
    const dbConnect= await User.findById(user._id).select(
-    "-password -refreshToken"
+    "-password"
    )
-   //console.log(dbConnect)
+    
    if(!dbConnect){
     throw new APIError(500,"something went wrong while registration")
    }
@@ -101,10 +104,11 @@ const loginUser=asynchandler(async (req,res)=>{
     const user= await User.findOne({
         $or:[{username} , {email}]
     })
+    //console.log("bhaya plz",user)
      if(!user){
         throw new APIError(404,"user does not exist123")
     }
-    //console.log(user);
+     
 
    const isPasswordValid=await user.isPasswordCorrect(password)
     
@@ -116,7 +120,10 @@ const loginUser=asynchandler(async (req,res)=>{
    const {accessToken, refreshToken}=await generateAccessAndRefreshToken(user._id);
     
   
-   const logedInUser=await User.findById(user._id).select("-password")
+   const logedInUser=await User.findById(user._id).select(" -password -refreshToken")
+
+   console.log("logged in user:",logedInUser)
+
  
    const option={
     httpOnly:true,
@@ -159,10 +166,9 @@ const logoutUser=asynchandler(async (req,res)=>{
             new:true
         }
     )
-
     const option={
         httpOnly:true,
-        secure:true
+        //secure:true
     }
 
     return res
@@ -175,32 +181,37 @@ const logoutUser=asynchandler(async (req,res)=>{
 
 const refreshAccessToken=asynchandler(async(req,res)=>{
     
-    const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken
+    const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken 
     if(!incomingRefreshToken){
         throw new APIError(401,"unauthorized request")
     }
 
     try {
         const decodedToken=jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
-        console.log("this is decoded token:",decodedToken);
+         
        const user=await User.findById(decodedToken._id)
+        
+        
        if(!user){
         throw new APIError(401,"invalid refresh token")
        }
-       if(incomingRefreshToken!==user?.refreshToken){
+        
+       const dataBaseRefreshToken=await user?.refreshToken;
+        
+       if(incomingRefreshToken!== dataBaseRefreshToken){
         throw new APIError(401,"refresh token not matched so its expired or used")
        }
        const option={
         httpOnly:true,
-        //secure:true
+        secure:true
        }
-       const {accessToken,RefreshToken}=await generateAccessAndRefreshToken(user._id)
+       const {accessToken,refreshToken: newRefreshToken }=await generateAccessAndRefreshToken(user._id)
        return res
        .status(200)
        .cookie("accessToken",accessToken,option)
-       .cookie("refreshToken",RefreshToken,option)
+       .cookie("refreshToken",newRefreshToken,option)
        .json(
-        new ApiResponse(200,{accessToken,RefreshToken},"refreshToken generated successfully")
+        new ApiResponse(200,{accessToken,newRefreshToken},"refreshToken generated successfully")
        )
     
     } catch (error) {
@@ -218,6 +229,7 @@ const changeCurrentPassword= asynchandler(async(req,res)=>{
     }
     user.password=newPassword
     await user.save({validateBeforeSave:false})
+   
 
     return res 
     .status(200)
@@ -225,9 +237,10 @@ const changeCurrentPassword= asynchandler(async(req,res)=>{
 })
 
 const getUser=asynchandler(async(req,res)=>{
+    console.log("check this:",req.user)
     return res
     .status(200)
-    .json(200,req.user,"current user fetched")
+    .json(new ApiResponse(200,req.user,"current user fetched"))
 })
 
 const updateAccountDetails=asynchandler(async(req,res)=>{
@@ -235,7 +248,7 @@ const updateAccountDetails=asynchandler(async(req,res)=>{
     //here i dont want the user to be able to change his/her username
     //here we should not give option for files change as it can lead to difficulties so for file update keep a diff route
     if(!fullname || !email){
-        throw APIError(400,"both field required for updation")
+        throw new APIError(400,"both field required for updation")
     }
 
     const user=await User.findByIdAndUpdate(
@@ -254,8 +267,6 @@ const updateAccountDetails=asynchandler(async(req,res)=>{
     return res
     .status(200)
     .json(new ApiResponse(200,user,"account details successfully updated"))
-
-
 })
 
 const updateAvatar=asynchandler(async(req,res)=>{
@@ -265,11 +276,11 @@ const updateAvatar=asynchandler(async(req,res)=>{
     }
 
     const checkUser = await User.findById(req.user?._id);
-    if (!user) {
+    if (!checkUser) {
         throw new APIError(404, "User not found");
     }
 
-    const oldAvatarPublicId = user.avatar ? extractPublicId(user.avatar) : null;
+    const oldAvatarPublicId = checkUser.avatar ? extractPublicId(checkUser.avatar) : null;
 
     const uploadedAvatarPath= await uploadOnCloudenary(updatedAvatarPath)
     if(!uploadedAvatarPath.path){
@@ -364,7 +375,7 @@ const getUserChannelProfile=asynchandler(async(req,res)=>{
     .json(new ApiResponse(200,subscribersCount,subscribedToCount,isSubscribed,username,user.fullname,user.avatar,user,coverImage),
 "user channel profile sent")
 })
-
+//this end point basically gives the history of videos to yash mittal which yash mittal has viewed earlier
 const getWatchHistoryOfUser=asynchandler(async(req,res)=>{
     //verifyJWT
     const userId=req.user?._id
@@ -382,23 +393,26 @@ const getWatchHistoryOfUser=asynchandler(async(req,res)=>{
     if(videoId.length()==0){
         return res.status(200).json(new ApiResponse(200, [], "No videos in watch history"));
     }
-
+    //if error occurs then segregate and write the video line(just below one)
     const video=await Video.find({_id:{$in:videoId}}).select("-description").populate("owner","username").exec()
 
     if (video.length === 0) {
-        return res.status(404).json(new ApiResponse(404, [], "No videos found in the watch history"));
+        return res.status(404).json(new ApiResponse(404, [], "No videos found in the watch history 2nd"));
     }
     
 
     //now return response to frontend engineer
-
     return res
     .status(200)
     .json(new ApiResponse(200,video,"successfully fetched the videoHistory of the user"))
-
-
-
 })
+
+
+//now make an end point where yash mittal can view all videos which he has created, and also an end point 
+//where yash mittal can view all the videos created by only bb ki vines 
+
+
+
 
 export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getUser,updateAccountDetails,
     updateAvatar,updateCoverImage,getUserChannelProfile,getWatchHistoryOfUser
