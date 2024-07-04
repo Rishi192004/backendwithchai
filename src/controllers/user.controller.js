@@ -369,13 +369,25 @@ const getUserChannelProfile=asynchandler(async(req,res)=>{
     The subscriber field matches the _id of the currently authenticated user (req.user?._id).
     The channel field matches the _id of the channel owner (user._id).*/
     });
+    const userId=await user._id;
+    const videos=await Video.find({owner:userId}).populate("owner","username").exec();
 
-    return res
-    .status(200)
-    .json(new ApiResponse(200,subscribersCount,subscribedToCount,isSubscribed,username,user.fullname,user.avatar,user,coverImage),
-"user channel profile sent")
+
+    return res.status(200).json(new ApiResponse(
+        200,
+        {
+            subscribersCount,
+            subscribedToCount,
+            isSubscribed,
+            username: user.username,
+            fullname: user.fullname,
+            avatar: user.avatar,
+            coverImage: user.coverImage,
+            video:videos
+        },
+        "User channel profile fetched successfully"
+    ));
 })
-//this end point basically gives the history of videos to yash mittal which yash mittal has viewed earlier
 const getWatchHistoryOfUser=asynchandler(async(req,res)=>{
     //verifyJWT
     const userId=req.user?._id
@@ -407,13 +419,24 @@ const getWatchHistoryOfUser=asynchandler(async(req,res)=>{
     .json(new ApiResponse(200,video,"successfully fetched the videoHistory of the user"))
 })
 
-
-//now make an end point where yash mittal can view all videos which he has created, and also an end point 
-//where yash mittal can view all the videos created by only bb ki vines 
+const videosCreatedByUser=asynchandler(async(req,res)=>{
+    const userId=req.user?._id;
+    const myUser=await User.findById(userId);
+    if(!myUser){
+        throw new APIError(400,"didn't got myUser")
+    }
+    const myVideo=await Video.find({owner:userId}).populate("owner","username").exec()
+    if(myVideo.length===0){
+        return new ApiResponse(200,{},"no videos created by you")
+    }
+    return res
+    .status(200)
+    .json(new  ApiResponse(200,myVideo,"Successfully fetched the videos created by the user"))
+})
 
 
 
 
 export {registerUser,loginUser,logoutUser,refreshAccessToken,changeCurrentPassword,getUser,updateAccountDetails,
-    updateAvatar,updateCoverImage,getUserChannelProfile,getWatchHistoryOfUser
+    updateAvatar,updateCoverImage,getUserChannelProfile,getWatchHistoryOfUser,videosCreatedByUser
 }
