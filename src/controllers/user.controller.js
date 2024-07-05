@@ -122,7 +122,7 @@ const loginUser=asynchandler(async (req,res)=>{
   
    const logedInUser=await User.findById(user._id).select(" -password -refreshToken")
 
-   console.log("logged in user:",logedInUser)
+    
 
  
    const option={
@@ -280,10 +280,17 @@ const updateAvatar=asynchandler(async(req,res)=>{
         throw new APIError(404, "User not found");
     }
 
-    const oldAvatarPublicId = checkUser.avatar ? extractPublicId(checkUser.avatar) : null;
+    const oldAvatar =await checkUser.avatar
+    if(!oldAvatar){
+        throw new APIError(400,"there is no prior avatar")
+    }
+    const oldAvatarPublicId=await extractPublicId(oldAvatar)
+    if(!oldAvatarPublicId){
+        throw new APIError(500,"not able to extract old avatar's link on cloudenary's")
+    }
 
-    const uploadedAvatarPath= await uploadOnCloudenary(updatedAvatarPath)
-    if(!uploadedAvatarPath.path){
+     const uploadedAvatarPath= await uploadOnCloudenary(updatedAvatarPath)
+     if(!uploadedAvatarPath.url){
         throw new APIError(500,"avatar's URI not recieved after uploading")
     }
 
@@ -310,17 +317,17 @@ const updateAvatar=asynchandler(async(req,res)=>{
 const updateCoverImage=asynchandler(async(req,res)=>{
     const updatedCoverImagePath=req.file?.path;
     if(!updatedCoverImagePath){
-        throw new APIError(400,"avatar file is missing")
+        throw new APIError(400,"coverImage file is missing")
     }
     const checkUser = await User.findById(req.user?._id);
-    if (!user) {
+    if (!checkUser) {
         throw new APIError(404, "User not found");
     }
 
-    const oldCoverImagePublicId = user.coverImage ? extractPublicId(user.coverImage) : null;
+    const oldCoverImagePublicId = await checkUser.coverImage ? extractPublicId(checkUser.coverImage) : null;
 
     const uploadedCoverImagePath= await uploadOnCloudenary(updatedCoverImagePath)
-    if(!uploadedCoverImagePath.path){
+    if(!uploadedCoverImagePath.url){
         throw new APIError(500,"cover image URI not recieved after uploading")
     }
 
