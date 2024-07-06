@@ -25,4 +25,29 @@ import { asynchandler } from "../utils/asynchandler.js";
    .json(new ApiResponse(200,subscibedChannel,"list of subscribed channels sent"))
  })
 
- export{ getSubscribedChannels }
+const getUserChannelSubscribers=asynchandler(async(req,res)=>{
+    const userId=req.user?._id;
+    if(!userId){
+        throw new APIError(400,"user channel not authenticated");
+    }
+    const user=await User.findById(userId);
+    if(!user){
+        throw new APIError(400,"user not found");
+    }
+    const channelsSubscriber=await subscription.find({channel:userId}).populate('subscriber','username fullname avatar').exec()
+
+    if(channelsSubscriber.length===0){
+        return res.status(200).json(new ApiResponse(200,{},"channel has no subscriber"));
+    }
+    return res
+    .status(200)
+    .json(new ApiResponse(200,channelsSubscriber,"channel subscriber details sent"));
+})
+
+const toggleSubscription=asynchandler(async(req,res)=>{
+ 
+})
+
+
+
+ export{ getSubscribedChannels, getUserChannelSubscribers, toggleSubscription }
