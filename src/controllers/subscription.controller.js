@@ -44,43 +44,51 @@ const getUserChannelSubscribers=asynchandler(async(req,res)=>{
     .json(new ApiResponse(200,channelsSubscriber,"channel subscriber details sent"));
 })
 
-const toggleSubscription=asynchandler(async(req,res)=>{
-    //frontend dev will send these three things when the user hits the subscribe button
-    const {channelId,subscriberId,subStatus}=req.body;
-    if(!channelId || !subscriberId ){
-        throw new APIError(400,"Missing channelId or subscriberId")
-    }
-    const userId=req.user?._id;
+const toggleSubscription = asynchandler(async (req, res) => {
+    // Frontend dev will send these three things when the user hits the subscribe button
+    const { channelId, subscriberId, subStatus } = req.body;
 
-    if(!userId){
-        throw new APIError(400,"User is not authenticated");
+    if (!channelId || !subscriberId) {
+        throw new APIError(400, "Missing channelId or subscriberId");
     }
 
-    if(subscriberId !== userId.toString()) {
+    const userId = req.user?._id;
+
+    if (!userId) {
+        throw new APIError(401, "User is not authenticated");
+    }
+
+    if (subscriberId !== userId.toString()) {
         throw new APIError(400, "Subscriber ID does not match the authenticated user");
     }
 
-    if(subStatus){
-        const alreadySubscribed=await subscription.findOne({subscriberId,channelId});
-        if(alreadySubscribed){
-            throw new APIError(400,"user is already subscribed to channel")
+    if (subStatus) {
+        const alreadySubscribed = await subscription.findOne({ subscriber: subscriberId, channel: channelId });
+         
+
+        if (alreadySubscribed) {
+            throw new APIError(400, "User is already subscribed to this channel");
+        } else {
+            const creationInSubModel = await subscription.create({
+                subscriber: subscriberId,
+                channel: channelId
+            });
+            return res.status(200).json(new ApiResponse(200, creationInSubModel, "Successfully subscribed"));
         }
-        const creationInSubModel=await subscription.create({
-            subscriberId,
-            channelId,
-        })
-        return res.status(200).json(new ApiResponse(200,creationInSubModel,"successfully subscribed"));
-    }else{
-        const alreadySubscribed=await subscription.findOne({subscriberId,channelId});
-        if(!alreadySubscribed){
-            throw new APIError(400,"user is already subscribed to channel")
+    } else {
+        const alreadySubscribed = await subscription.findOne({ subscriber: subscriberId, channel: channelId });
+         
+
+        if (!alreadySubscribed) {
+            throw new APIError(400, "User is already not subscribed to this channel");
         }
-        //unsubscribed
-       await subscription.deleteOne({subscriberId,channelId});
-       //gpt is saying to convert this {} to null
-       return res.status(200).json(new ApiResponse(200,{},"Successfully unsubscribed"))
+        // Unsubscribe
+        const todo=await subscription.deleteOne({ subscriber: subscriberId, channel: channelId });
+         
+        return res.status(200).json(new ApiResponse(200, null, "Successfully unsubscribed"));
     }
-})
+});
+
 
 
 
