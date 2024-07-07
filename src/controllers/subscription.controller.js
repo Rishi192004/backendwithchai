@@ -45,7 +45,41 @@ const getUserChannelSubscribers=asynchandler(async(req,res)=>{
 })
 
 const toggleSubscription=asynchandler(async(req,res)=>{
- 
+    //frontend dev will send these three things when the user hits the subscribe button
+    const {channelId,subscriberId,subStatus}=req.body;
+    if(!channelId || !subscriberId ){
+        throw new APIError(400,"Missing channelId or subscriberId")
+    }
+    const userId=req.user?._id;
+
+    if(!userId){
+        throw new APIError(400,"User is not authenticated");
+    }
+
+    if(subscriberId !== userId.toString()) {
+        throw new APIError(400, "Subscriber ID does not match the authenticated user");
+    }
+
+    if(subStatus){
+        const alreadySubscribed=await subscription.findOne({subscriberId,channelId});
+        if(alreadySubscribed){
+            throw new APIError(400,"user is already subscribed to channel")
+        }
+        const creationInSubModel=await subscription.create({
+            subscriberId,
+            channelId,
+        })
+        return res.status(200).json(new ApiResponse(200,creationInSubModel,"successfully subscribed"));
+    }else{
+        const alreadySubscribed=await subscription.findOne({subscriberId,channelId});
+        if(!alreadySubscribed){
+            throw new APIError(400,"user is already subscribed to channel")
+        }
+        //unsubscribed
+       await subscription.deleteOne({subscriberId,channelId});
+       //gpt is saying to convert this {} to null
+       return res.status(200).json(new ApiResponse(200,{},"Successfully unsubscribed"))
+    }
 })
 
 
