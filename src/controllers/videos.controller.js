@@ -31,7 +31,7 @@ const addWatchedVideoInWatchHistory=asynchandler(async(req,res)=>{
 const publishAVideo = asynchandler(async (req, res) => {
     const { title, description} = req.body
 
-    
+
     // TODO: get video, upload to cloudinary, create video
 
 
@@ -102,6 +102,54 @@ const publishAVideo = asynchandler(async (req, res) => {
 })
 
 
+const deleteVideo = asynchandler(async (req, res) => {
+    //REMEMBER THAT CLOUDENARYURL IS SENT ON BODY,AND VIDEOID ON PARAMS(URL FORM)
+
+    const { videoId } = req.params
+    const { cloudinaryUrl } = req.body;
+    if(!videoId || !cloudinaryUrl){
+        throw new APIError(400,"from frontEnd either videoId or cloudenaryUrl has not come!!!")
+    }
+     
+   // Assume you have a button to delete a video. When this button is clicked, you would make a DELETE request to 
+   //your backend API with the video ID in the URL.
+   const userId=req.user?._id;
+   if(!userId){
+    throw new APIError(400,"user not authenticated")
+   }
+
+    //not verifying user again as its already authenticated
+
+   const video=await Video.findById(videoId);
+   if(!video){
+    throw new APIError(400,"video not found")
+   }
 
 
-export { addWatchedVideoInWatchHistory, publishAVideo }
+   if(userId.toString()!==video.owner.toString()){
+    throw new APIError(403, "You are not authorized to delete this video.")
+   };
+
+
+   const cloudenaryId=await extractPublicId(cloudinaryUrl)
+    if(!cloudenaryId){
+        throw new APIError(500,"Failed to extract Cloudinary ID from the URL")
+    }
+
+
+   try {
+        await deleteFromCloudinary(cloudenaryId);
+    } catch (error) {
+        throw new APIError(500, "Failed to delete video from Cloudinary.");
+    }
+
+
+
+    await Video.findByIdAndDelete(videoId);
+
+
+    return res.status(200).json(new ApiResponse(200,{},"Successfully deleted the video."))
+})
+
+
+export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo }
