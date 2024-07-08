@@ -376,8 +376,9 @@ const getUserChannelProfile=asynchandler(async(req,res)=>{
     The subscriber field matches the _id of the currently authenticated user (req.user?._id).
     The channel field matches the _id of the channel owner (user._id).*/
     });
-    const userId=await user._id;
-    const videos=await Video.find({owner:userId}).populate("owner","username").exec();
+
+    // const userId=await user._id;
+    // const videos=await Video.find({owner:userId}).populate("owner","username").exec();
 
 
     return res.status(200).json(new ApiResponse(
@@ -389,41 +390,38 @@ const getUserChannelProfile=asynchandler(async(req,res)=>{
             username: user.username,
             fullname: user.fullname,
             avatar: user.avatar,
-            coverImage: user.coverImage,
-            video:videos
+            coverImage: user.coverImage
+             
         },
         "User channel profile fetched successfully"
     ));
 })
 const getWatchHistoryOfUser=asynchandler(async(req,res)=>{
     //verifyJWT
-    const userId=req.user?._id
-    if(!userId){
-        throw new APIError(400,"user not authenticated")
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new APIError(400, "User not authenticated");
     }
-    const user=await User.findById(userId);
-    if(!user){
-        throw new APIError(400,"didnt recieved user from auth id")
-    }
-    //i got yash mittal here
 
-    const videoId=await user.watchHistory
-    //here i got all id's of videos which yash mittal has viewed
-    if(videoId.length()==0){
+    const user = await User.findById(userId).populate({
+        path: 'watchHistory',
+        select: '-description',
+        populate: {
+            path: 'owner',
+            select: 'username avatar fullname'
+        }
+    }).exec();
+
+    if (!user) {
+        throw new APIError(400, "User not found");
+    }
+
+    const watchHistory = user.watchHistory;
+    if (!watchHistory.length) {
         return res.status(200).json(new ApiResponse(200, [], "No videos in watch history"));
     }
-    //if error occurs then segregate and write the video line(just below one)
-    const video=await Video.find({_id:{$in:videoId}}).select("-description").populate("owner","username").exec()
 
-    if (video.length === 0) {
-        return res.status(404).json(new ApiResponse(404, [], "No videos found in the watch history 2nd"));
-    }
-    
-
-    //now return response to frontend engineer
-    return res
-    .status(200)
-    .json(new ApiResponse(200,video,"successfully fetched the videoHistory of the user"))
+    return res.status(200).json(new ApiResponse(200, watchHistory, "Successfully fetched the watch history of the user"));
 })
 
 const videosCreatedByUser=asynchandler(async(req,res)=>{
@@ -438,8 +436,10 @@ const videosCreatedByUser=asynchandler(async(req,res)=>{
     }
     return res
     .status(200)
-    .json(new  ApiResponse(200,myVideo,"Successfully fetched the videos created by the user"))
+    .json(new ApiResponse(200,myVideo,"Successfully fetched the videos created by the user"))
 })
+
+ 
 
 
 
