@@ -27,7 +27,7 @@ const addWatchedVideoInWatchHistory=asynchandler(async(req,res)=>{
     );
     return res.status(200).json(new ApiResponse(200, {}, "Video added to watch history"));
 })
-
+//by publishVideos i can test delete and add in watchHistory function 
 const publishAVideo = asynchandler(async (req, res) => {
     const { title, description} = req.body
 
@@ -151,5 +151,69 @@ const deleteVideo = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200,{},"Successfully deleted the video."))
 })
 
+const updateVideo=asynchandler(async(req,res)=>{
+    const {videoId,description,title}=req.body;
+    if(!videoId || !description || !title){
+        throw new APIError(400,"videoId or description or title is required to be sent")
+    }
+    const userId=req.user?._id;
+    if(!userId){
+        throw new APIError(401,"user not authenticated")
+    }
+    const user=await User.findById(userId);
+    if(!user){
+        throw new APIError(400,"user not found")
+    }
+    const video=await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set:{
+                title:title,
+                description:description
+            }
+        },
+        {new:true}
+    )
+    if(!video){
+        throw new APIError(402,"no video with specified videoId found")
+    }
+    return res.
+    status(200)
+    .json(new ApiResponse(200,video,"successfully updated title and description"))
+    
+})
+const getVideoById=asynchandler(async(req,res)=>{
+    const userId=req.user?._id;
+    if(!userId){
+        throw new APIError(400,"user not authenticated")
+    }
+    const { videoId }=req.params;
+    if(!videoId){
+        throw new APIError(400,"videoId is required")
+    }
+    const video =await Video.findById(videoId);
+    if(!video){
+        throw new APIError(401,"no video by this video id")
+    }
+    return res.status(200).json(new ApiResponse(200,video,"video sent by videoId"))
+})
 
-export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo }
+const toggleSubscription=asynchandler(async(req,res)=>{
+    const user=req.user?._id;
+    if(!user){
+        throw new APIError(401,"user id not found")
+    }
+    const { videoId } = req.params;
+    if(!videoId){
+        throw new APIError(401,"videoId is required")
+    }
+    const video=await Video.findById(videoId);
+    if(!video){
+        throw new APIError(400,"video not found")
+    }
+    video.isPublished = !video.isPublished;
+    await video.save();
+    return res.status(200).json(new ApiResponse(200,video,"Successfully toggled publish status"))
+})
+
+export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription }
