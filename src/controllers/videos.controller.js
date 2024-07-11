@@ -218,4 +218,19 @@ const toggleSubscription=asynchandler(async(req,res)=>{
     return res.status(200).json(new ApiResponse(200,video,"Successfully toggled publish status"))
 })
 
-export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription }
+const incViews=asynchandler(async(req,res)=>{
+    const { videoId } =req.params;
+    if(!videoId){
+        throw new APIError(400,"videoId is required")
+    }
+    const video=await Video.findById(videoId);
+    if(!video){
+        throw new APIError(401,"video not found");
+    }
+    const views=await video.views;
+    views=views+1;
+    await video.save();
+    return res.status(200).json(new ApiResponse(200,{},"views increased by 1"))
+})//PUT OR PATCH METHOD USED
+
+export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription,incViews}

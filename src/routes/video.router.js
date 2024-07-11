@@ -1,6 +1,6 @@
 import { Router } from "express";
 import {upload} from "../middleware/multer.middleware.js"
-import { addWatchedVideoInWatchHistory,publishAVideo,deleteVideo,updateVideo,getVideoById,toggleSubscription} from "../controllers/videos.controller.js";
+import { addWatchedVideoInWatchHistory,publishAVideo,deleteVideo,updateVideo,getVideoById,toggleSubscription,incViews} from "../controllers/videos.controller.js";
 import { verifyJWT } from "../middleware/auth.middleware.js";
 const router=Router()
 
@@ -14,6 +14,8 @@ router.route("/updateVideo").patch(verifyJWT,updateVideo)
 router.route("/getVideoById").get(verifyJWT,getVideoById)
 
 router.route("/toggle/publish/:videoId").patch(verifyJWT,toggleSubscription)
+//look at this once for incViews
+router.route("/incViews").put(incViews)
 
 
  
