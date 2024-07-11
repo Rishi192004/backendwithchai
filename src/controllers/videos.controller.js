@@ -101,12 +101,14 @@ const publishAVideo = asynchandler(async (req, res) => {
     
 })
 
-
+//FRONTEND ENGINEER FIRSTS GETS THE VIDEO BY VIDEO ID AND FROM THERE CAN SEND ME CLOUDENARY LINK OF VIDEO
 const deleteVideo = asynchandler(async (req, res) => {
     //REMEMBER THAT CLOUDENARYURL IS SENT ON BODY,AND VIDEOID ON PARAMS(URL FORM)
-
+    //  get function for vide will be sent from where i can get url of cloudenary 
     const { videoId } = req.params
     const { cloudinaryUrl } = req.body;
+    console.log("videoId:",videoId)
+    console.log("cloudenaryURL:",cloudinaryUrl)
     if(!videoId || !cloudinaryUrl){
         throw new APIError(400,"from frontEnd either videoId or cloudenaryUrl has not come!!!")
     }
