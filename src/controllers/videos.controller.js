@@ -232,5 +232,49 @@ const incViews=asynchandler(async(req,res)=>{
     await video.save();
     return res.status(200).json(new ApiResponse(200,{},"views increased by 1"))
 })//PUT OR PATCH METHOD USED
+//YEH WALA CODE PHIR SAI DEKHO HAZAR BAAR DEKHO KUCH NAYA HAI,AND YEH SAHI HAI ISKA KOI GAURENTEE NHI HAI,REVISIT THE LOGIC
+const getAllVideos=asynchandler(async (req, res) => {
+    const { page = 1, limit = 5, query = '', sortBy = 'createdAt', sortType = 'desc', userId } = req.query;
 
-export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription,incViews}
+    // Create a filter object
+    const filter = {};
+
+    // Add query filter if it exists
+    if (query) {
+        filter.title = { $regex: query, $options: 'i' }; // Case-insensitive regex search on title
+    }
+
+    // Add userId filter if it exists
+    if (userId) {
+        filter.userId = userId;
+    }
+
+    // Convert page and limit to numbers
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+
+    // Set sorting order
+    const sort = {};
+    sort[sortBy] = sortType === 'asc' ? 1 : -1;
+
+    // Fetch videos from the database
+    const videos = await Video.find(filter)
+        .sort(sort)
+        .skip((pageNumber - 1) * limitNumber)
+        .limit(limitNumber);
+
+    // Get the total count of videos matching the filter
+    const totalVideos = await Video.countDocuments(filter);
+
+    return res.status(200).json(new ApiResponse(200,{page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(totalVideos / limitNumber),
+        totalVideos,
+        videos},
+        "sent All videos"
+    ))
+
+})
+
+
+export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription,incViews,getAllVideos}
