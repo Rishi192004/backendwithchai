@@ -66,4 +66,61 @@ const addVideoToPlaylist = asynchandler(async (req, res) => {
     }
      return res.status(200).json(new ApiResponse(200,playlist,"added video to playList"))
 })
-export {createPlaylist,addVideoToPlaylist}
+//koi bhi aadmi kisi ka bhi playList dekh skta hai,SECURITY AND TOGGLE FEATURE WILL BE ADDED AFTER SOMETIMES
+const getUserPlaylists = asynchandler(async (req, res) => {
+    const {userId} = req.params
+    //TODO: get user playlists
+    if (!userId) {
+        throw new APIError(401, "userId not there");
+    }
+    const playlist=await playList.find({owner:userId})
+    .populate({
+        path:'videos',
+        select:'thumbNail owner videoFile title views',
+        populate:{
+            path:'owner',
+            select:'username'
+        }
+    })
+    .populate({
+        path: 'owner', 
+        select: 'username'
+    })
+
+    if (!playlist || playlist.length === 0) {
+        throw new APIError(404, "No playlists found for the user");
+    }
+    return res.status(200).json(new ApiResponse(200,playlist,"playlist of user is sent"));
+})
+
+const getPlaylistById = asynchandler(async (req, res) => {
+    const {playlistId} = req.params
+    //TODO: get playlist by id
+    if(!playlistId){
+        throw new APIError(401,"playList id is important to enter")
+    }
+    const userId=req.user?._id;
+    if(!userId){
+        throw new APIError(401,"user not authenticated")
+    }
+    const playlist=await playList.findById(playlistId)
+    .populate({
+        path:'videos',
+        select:'thumbNail owner videoFile title views',
+        populate:{
+            path:'owner',
+            select:'username'
+        }
+    })
+    .populate({
+        path:'owner',
+        select:'username'
+    });
+    if(!playlist){
+        throw new APIError(400,"no such playlist exists")
+    }
+    return res.status(200).json(new ApiResponse(200,playlist,"playlist by give playlistId is sent successfully"))
+})
+ 
+ 
+export {createPlaylist,addVideoToPlaylist,getUserPlaylists,getPlaylistById}
