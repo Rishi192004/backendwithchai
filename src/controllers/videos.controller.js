@@ -27,6 +27,7 @@ const addWatchedVideoInWatchHistory=asynchandler(async(req,res)=>{
     );
     return res.status(200).json(new ApiResponse(200, {}, "Video added to watch history"));
 })
+
 //by publishVideos i can test delete and add in watchHistory function 
 const publishAVideo = asynchandler(async (req, res) => {
     const { title, description} = req.body
@@ -199,7 +200,7 @@ const getVideoById=asynchandler(async(req,res)=>{
     }
     return res.status(200).json(new ApiResponse(200,video,"video sent by videoId"))
 })
-
+//toggle isPublished
 const toggleSubscription=asynchandler(async(req,res)=>{
     const user=req.user?._id;
     if(!user){
@@ -232,7 +233,11 @@ const incViews=asynchandler(async(req,res)=>{
     await video.save();
     return res.status(200).json(new ApiResponse(200,{},"views increased by 1"))
 })//PUT OR PATCH METHOD USED
+
+
 //YEH WALA CODE PHIR SAI DEKHO HAZAR BAAR DEKHO KUCH NAYA HAI,AND YEH SAHI HAI ISKA KOI GAURENTEE NHI HAI,REVISIT THE LOGIC
+
+//bhai infinite scroll ka option daal dena ispe in frontend
 const getAllVideos=asynchandler(async (req, res) => {
     const { page = 1, limit = 5, query = '', sortBy = 'createdAt', sortType = 'desc', userId } = req.query;
 
@@ -275,6 +280,4 @@ const getAllVideos=asynchandler(async (req, res) => {
     ))
 
 })
-
-
 export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription,incViews,getAllVideos}
