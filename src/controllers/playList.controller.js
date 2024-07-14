@@ -121,6 +121,81 @@ const getPlaylistById = asynchandler(async (req, res) => {
     }
     return res.status(200).json(new ApiResponse(200,playlist,"playlist by give playlistId is sent successfully"))
 })
- 
- 
-export {createPlaylist,addVideoToPlaylist,getUserPlaylists,getPlaylistById}
+
+const deletePlaylist = asynchandler(async (req, res) => {
+    const {playlistId} = req.params
+     if(!playlistId){
+        throw new APIError(400,"playListId is required here")
+     }
+     const userId=req.user?._id;
+     if(!userId){
+        throw new APIError(401,"user is not authenticated")
+     }
+     const playlist=await playList.findById(playlistId);
+     if(!playlist){
+        throw new APIError(404,"no such playList with given Id is present")
+     }
+     if(playlist.owner.toString()!==userId.toString()){
+        throw new APIError(402,"the user is not authenticated to delete this playlist")
+     }
+     await playList.findByIdAndDelete(playlistId);
+     return res.status(200).json(200,{},"this playList is successfully deleted")
+     
+})
+
+const updatePlaylist = asynchandler(async (req, res) => {
+    const {playlistId} = req.params
+    const {name, description} = req.body
+    //TODO: update playlist
+    if(!playlistId || !name || !description){
+        throw new APIError(400,"playlistId or name or description is missing")
+    }
+    const userId=req.user?._id;
+    if(!userId){
+        throw new APIError(400,"user is not authenticated")
+    }
+    const playlist=await playList.findById(playlistId);
+    if(!playlist){
+        throw new APIError(400,"playlist not found");
+    }
+    if(playlist.owner.toString()!==userId.toString()){
+        throw new APIError(402,"this playlist can't be updated by this user, he's not authenticated")
+    }
+    playlist.name=name;
+    playlist.description=description;
+    await playlist.save();
+    return res.status(200).json(200,playlist,"playlist has been updated")
+})
+
+const removeVideoFromPlaylist = asynchandler(async (req, res) => {
+    const {playlistId, videoId} = req.params
+    // TODO: remove video from playlist
+    if(!playlistId || !videoId){
+        throw new APIError(400,"either playlistId or videoId is not there in params")
+    }
+    const playlist=await playList.findById(playlistId);
+    if(!playlist){
+        throw new APIError(404,"the playlit with given playlistId do not exists")
+    }
+    const video=await Video.findById(videoId);
+    if(!video){
+        throw new APIError(404,"no such video with given videoId found")
+    }
+    const userId=req.user?._id;
+    //check that is owner of playlist the user_id wala user only!!!
+    //user can add any video in playlist
+    if(playlist.owner.toString()!==userId.toString()){
+        throw new APIError(403,"the authenticated user is not the owner of playlist")
+    }
+    const videoIndex = playlist.videos.indexOf(videoId);
+    if (videoIndex === -1) {
+        throw new APIError(404, "Video not found in the playlist");
+    }
+
+    playlist.videos.splice(videoIndex, 1);
+    await playlist.save();
+    const newPlaylist=await playList.findById(playlistId);
+    return res.status(200).json(new ApiResponse(200,newPlaylist,"given video is succesfully deleted from the playList"))
+
+})
+export{createPlaylist,addVideoToPlaylist,getUserPlaylists,getPlaylistById,deletePlaylist,updatePlaylist,removeVideoFromPlaylist}

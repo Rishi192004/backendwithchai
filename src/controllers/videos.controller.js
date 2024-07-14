@@ -154,37 +154,33 @@ const deleteVideo = asynchandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200,{},"Successfully deleted the video."))
 })
 
-const updateVideo=asynchandler(async(req,res)=>{
-    const {videoId,description,title}=req.body;
-    if(!videoId || !description || !title){
-        throw new APIError(400,"videoId or description or title is required to be sent")
+const updateVideo = asynchandler(async (req, res) => {
+    const { videoId, description, title } = req.body;
+    if (!videoId || !description || !title) {
+        throw new APIError(400, "videoId, description, and title are required");
     }
-    const userId=req.user?._id;
-    if(!userId){
-        throw new APIError(401,"user not authenticated")
-    }
-    const user=await User.findById(userId);
-    if(!user){
-        throw new APIError(400,"user not found")
-    }
-    const video=await Video.findByIdAndUpdate(
-        videoId,
-        {
-            $set:{
-                title:title,
-                description:description
-            }
-        },
-        {new:true}
-    )
-    if(!video){
-        throw new APIError(402,"no video with specified videoId found")
-    }
-    return res.
-    status(200)
-    .json(new ApiResponse(200,video,"successfully updated title and description"))
     
-})
+    const userId = req.user?._id;
+    if (!userId) {
+        throw new APIError(401, "User not authenticated");
+    }
+    
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new APIError(402, "No video with specified videoId found");
+    }
+    
+    if (video.owner.toString() !== userId.toString()) {
+        throw new APIError(403, "User is not authorized to update this video");
+    }
+
+    video.title = title;
+    video.description = description;
+    await video.save();
+
+    return res.status(200).json(new ApiResponse(200, video, "Successfully updated title and description"));
+});
+
 const getVideoById=asynchandler(async(req,res)=>{
     const userId=req.user?._id;
     if(!userId){
