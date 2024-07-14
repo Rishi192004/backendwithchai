@@ -16,7 +16,7 @@ import { asynchandler } from "../utils/asynchandler.js";
     }
     //jaha subscriber pe meri id hogi mai un sare channel ka ek list bna raha hun
    const subscibedChannel=await subscription.find({subscriber:userId}).populate('channel','username fullname avatar')
-   console.log(subscibedChannel)
+   //console.log(subscibedChannel)
    if(subscibedChannel.length===0){
     return res.status(200).json(new ApiResponse(200,{},"you have not subscribed any channel yet"))
    }
