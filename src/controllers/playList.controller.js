@@ -76,7 +76,7 @@ const getUserPlaylists = asynchandler(async (req, res) => {
     const playlist=await playList.find({owner:userId})
     .populate({
         path:'videos',
-        select:'thumbNail owner videoFile title views',
+        select:'thumbNail owner videoFile title views duration' ,
         populate:{
             path:'owner',
             select:'username'
