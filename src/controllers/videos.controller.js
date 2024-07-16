@@ -234,8 +234,27 @@ const incViews=asynchandler(async(req,res)=>{
 //YEH WALA CODE PHIR SAI DEKHO HAZAR BAAR DEKHO KUCH NAYA HAI,AND YEH SAHI HAI ISKA KOI GAURENTEE NHI HAI,REVISIT THE LOGIC
 
 //bhai infinite scroll ka option daal dena ispe in frontend
-const getAllVideos=asynchandler(async (req, res) => {
+const getAllVideos = asynchandler(async (req, res) => {
     const { page = 1, limit = 5, query = '', sortBy = 'createdAt', sortType = 'desc', userId } = req.query;
+
+    // Validate page and limit
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    if (isNaN(pageNumber) || pageNumber <= 0) {
+        throw new APIError(400, "Invalid page number");
+    }
+    if (isNaN(limitNumber) || limitNumber <= 0) {
+        throw new APIError(400, "Invalid limit number");
+    }
+
+    // Validate sortBy and sortType
+    const validSortFields = ['createdAt', 'updatedAt', 'title', 'views', 'likes'];
+    if (!validSortFields.includes(sortBy)) {
+        throw new APIError(400, "Invalid sortBy field");
+    }
+    if (sortType !== 'asc' && sortType !== 'desc') {
+        throw new APIError(400, "Invalid sortType value, should be 'asc' or 'desc'");
+    }
 
     // Create a filter object
     const filter = {};
@@ -247,12 +266,8 @@ const getAllVideos=asynchandler(async (req, res) => {
 
     // Add userId filter if it exists
     if (userId) {
-        filter.userId = userId;
+        filter.owner = userId; // Assuming `owner` is the field for user ID in your Video model
     }
-
-    // Convert page and limit to numbers
-    const pageNumber = parseInt(page, 10);
-    const limitNumber = parseInt(limit, 10);
 
     // Set sorting order
     const sort = {};
@@ -267,13 +282,13 @@ const getAllVideos=asynchandler(async (req, res) => {
     // Get the total count of videos matching the filter
     const totalVideos = await Video.countDocuments(filter);
 
-    return res.status(200).json(new ApiResponse(200,{page: pageNumber,
+    return res.status(200).json(new ApiResponse(200, {
+        page: pageNumber,
         limit: limitNumber,
         totalPages: Math.ceil(totalVideos / limitNumber),
         totalVideos,
-        videos},
-        "sent All videos"
-    ))
+        videos
+    }, "Sent all videos successfully"));
+});
 
-})
 export { addWatchedVideoInWatchHistory, publishAVideo, deleteVideo, updateVideo, getVideoById,toggleSubscription,incViews,getAllVideos}
