@@ -203,6 +203,7 @@ const getLikedVideos = asynchandler(async (req, res) => {
     if(!userId){
         throw new APIError(403,"user is not authenticated")
     }
+    const likeCount=await Like.countDocuments({likedBy:userId})
     const like=await Like.find({likedBy:userId})
     .populate({
         path:'video',
@@ -221,7 +222,7 @@ const getLikedVideos = asynchandler(async (req, res) => {
         throw new APIError(404,"no liked videos found")
     }
 
-    return res.status(200).json(new ApiResponse(like,"All liked videos are returned successfully"))
+    return res.status(200).json(new ApiResponse(200,{like,likeCount},"All liked videos are returned successfully"))
 
 })
 

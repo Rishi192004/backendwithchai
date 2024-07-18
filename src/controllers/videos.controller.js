@@ -32,7 +32,7 @@ const addWatchedVideoInWatchHistory=asynchandler(async(req,res)=>{
 const publishAVideo = asynchandler(async (req, res) => {
     const { title, description} = req.body
 
-
+    //console.log(title)
     // TODO: get video, upload to cloudinary, create video
 
 
@@ -46,24 +46,25 @@ const publishAVideo = asynchandler(async (req, res) => {
         throw new APIError(400,"user not authenticated");
     }
 
-
+    //console.log("userId->",userId)
     const user=await User.findById(userId);
     if(!user){
         throw new APIError(400,"user not found")
     }
 
-
+    //console.log("user->",user)
     const videoFileLocalPath=req.files?.videoFile[0]?.path;
+     
     if(!videoFileLocalPath){
         throw new APIError(400,"video file not uploaded on local server")
     }
-
+     
 
     const thumbNailLocalPath=req.files?.thumbNail[0]?.path;
     if(!thumbNailLocalPath){
         throw new APIError(400,"thumb nail file not uploaded on local server")
     }
-
+     
 
     const videoFile=await uploadOnCloudenary(videoFileLocalPath);
     if(!videoFile){
